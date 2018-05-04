@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+
+<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" />
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"></script>
+<script type="text/javascript" src="http://static.robotwebtools.org/EaselJS/current/easeljs.min.js"></script>
+<script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script type="text/javascript" src="http://static.robotwebtools.org/ros2djs/current/ros2d.min.js"></script>
+<script type="text/javascript" src="http://static.robotwebtools.org/nav2djs/current/nav2d.min.js"></script>
+
+<script type="text/javascript" src="http://static.robotwebtools.org/keyboardteleopjs/current/keyboardteleop.min.js"></script>
+
+<script type="text/javascript">
+  /**
+   * Setup all GUI elements when the page is loaded.
+   */
+
+  var ros = new ROSLIB.Ros({
+      url : 'ws://10.219.67.51:9090'
+    });
+
+  var turtlebot_gohome = new ROSLIB.Topic({
+      ros : ros,
+      name : '/gohome',
+      messageType : 'std_msgs/String'
+    });
+
+  function init() {
+    // Connect to ROS.
+    var ros = new ROSLIB.Ros({
+      url : 'ws://10.219.67.51:9090'
+    });
+
+    // Initialize the teleop.
+    var teleop = new KEYBOARDTELEOP.Teleop({
+      ros : ros,
+      topic : '/cmd_vel_mux/input/teleop'
+    });
+
+    // Create a UI slider using JQuery UI.
+    $('#speed-slider').slider({
+      range : 'min',
+      min : 0,
+      max : 100,
+      value : 90,
+      slide : function(event, ui) {
+        // Change the speed label.
+        $('#speed-label').html('Speed: ' + ui.value + '%');
+        // Scale the speed.
+        teleop.scale = (ui.value / 100.0);
+      }
+    });
+
+    // Set the initial speed .
+    $('#speed-label').html('Speed: ' + ($('#speed-slider').slider('value')) + '%');
+    teleop.scale = ($('#speed-slider').slider('value') / 100.0);
+
+    // Create the main viewer.
+    var viewer = new ROS2D.Viewer({
+      divID : 'nav',
+      width : 400,
+      height : 400
+    });
+
+    // Setup the nav client.
+    var nav = NAV2D.OccupancyGridClientNav({
+      ros : ros,
+      rootObject : viewer.scene,
+      viewer : viewer,
+      serverName : '/move_base'
+    });
+  }
+  
+  function go_home() {
+        var home = new ROSLIB.Message({
+            data : 'gohome'
+        });
+        turtlebot_gohome.publish(home);
+  }
+</script>
+</head>
+
+<body onload="init()">
+  <div id="speed-label"></div>
+  <div id="speed-slider"></div>
+  <div class="title">
+  <h2>Simple Navigation Example</h2><h2>Image Video Output</h2>
+  </div>
+  <div id="nav"><img src="http://10.219.67.51:8080/stream?topic=/image_view/output"></div> 
+  <button onclick="go_home()">go home</button>
+</body>
+</html>
